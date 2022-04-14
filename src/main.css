@@ -1,0 +1,22 @@
+html {
+  background-color: #f0f0f0;
+  font-size: 16px;
+  height: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  font-size: clamp(1rem, 10vw, 1.5rem); 
+  font-weight: 400;
+  line-height: 1.5;
+  padding: 0 1rem;
+  text-rendering: optimizespeed;
+}
+
+#main-content {
+  display: grid;
+  grid-column-gap: 1rem;
+  grid-template-columns: 3fr 1fr;
+  grid-template-rows: 1fr;
+}

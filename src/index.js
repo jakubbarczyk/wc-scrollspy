@@ -7,8 +7,15 @@ class Scrollspy extends HTMLElement {
   #intersectionObserver;
 
   static style = `
+    :host {
+      font-size: 1rem;
+      position: fixed;
+      right: 0;
+    }
+
     aside {
-      background-color: #f0f0f0;
+      background-color: transparent;
+      padding: 0.5em 1.5em;
     }
 
     ul {
@@ -21,15 +28,21 @@ class Scrollspy extends HTMLElement {
     }
 
     a {
-      background-color: transparent;
-      border-left: 4px solid lightblue;
+      border-left: 4px solid #e0e0e6;
+      color: #5b5b66;
       display: block;
       padding: 0.5rem 1rem;
       text-decoration: none;
     }
 
+    a:not(.active):hover {
+      color: #1870f0;
+    }
+    
     .active {
-      border-left: 4px solid blue;
+      background-color: #1870f010;
+      border-left: 4px solid #1870f0;
+      color: #15141a;
     }
   `;
 
@@ -48,7 +61,7 @@ class Scrollspy extends HTMLElement {
       const li = document.createElement('li');
       const a = document.createElement('a');
       const id = heading.getAttribute('id');
-      a.href = id;
+      a.href = `#${id}`;
       a.innerText = heading.innerText;
       this.anchorsMap.set(id, a);
       li.append(a);
@@ -64,21 +77,15 @@ class Scrollspy extends HTMLElement {
   }
 
   connectedCallback() {
-    this.targetsNodeList.forEach(element => {
-      this.#intersectionObserver.observe(element);
-    });
+    this.targetsNodeList.forEach(element => this.#intersectionObserver.observe(element));
   }
 
   disconnectedCallback() {
-    this.targetsNodeList.forEach(element => {
-      this.#intersectionObserver.unobserve(element);
-    });
+    this.targetsNodeList.forEach(element => this.#intersectionObserver.unobserve(element));
   }
 
   intersectionObserverCallback(entries) {
-    entries.forEach(({ intersectionRatio, target }) => {
-      this.anchorsMap.get(target.id).className = intersectionRatio === 1 ? 'active' : '';
-    });
+    entries.forEach(({ intersectionRatio, target }) => this.anchorsMap.get(target.id).className = intersectionRatio === 1 ? 'active' : '');
   }
 
 }
