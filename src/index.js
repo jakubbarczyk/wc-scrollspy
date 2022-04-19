@@ -1,21 +1,18 @@
 class Scrollspy extends HTMLElement {
-
-  anchorsMap = new Map();
-  targetsNodeList = document.querySelectorAll(this.getAttribute('target-selector'));
+  active;
+  anchors = new Map();
+  targets = document.querySelectorAll(this.getAttribute('target-selector'));
 
   #shadowRoot;
+  #rootMargin = 16;
   #intersectionObserver;
 
   static style = `
     :host {
-      font-size: 1rem;
-      position: fixed;
-      right: 0;
-    }
-
-    aside {
       background-color: transparent;
-      padding: 0.5em 1.5em;
+      font-size: 1rem;
+      max-width: 240px;
+      padding: 1em 0;
     }
 
     ul {
@@ -49,45 +46,73 @@ class Scrollspy extends HTMLElement {
   constructor() {
     super();
 
-    this.#shadowRoot = this.attachShadow({ mode: 'closed' });
-
-    const aside = document.createElement('aside');
     const header = document.createElement('header');
     const ul = document.createElement('ul');
-    header.innerHTML = `<h3>${this.getAttribute('heading-text')}</h3>`;
-    aside.append(header);
+    const style = document.createElement('style');
+    const anchorsArray = [];
 
-    for (const heading of this.targetsNodeList) {
+    for (const target of this.targets) {
       const li = document.createElement('li');
       const a = document.createElement('a');
-      const id = heading.getAttribute('id');
+      const id = target.getAttribute('id');
+
       a.href = `#${id}`;
-      a.innerText = heading.innerText;
-      this.anchorsMap.set(id, a);
+      a.innerText = target.innerText;
+
+      anchorsArray.push({ id, element: a });
+
       li.append(a);
       ul.append(li);
     }
 
-    aside.append(ul);
+    header.innerHTML = `<h3>${this.getAttribute('heading-text')}</h3>`;
 
-    const style = document.createElement('style');
     style.textContent = Scrollspy.style;
-    this.#shadowRoot.append(style, aside);
-    this.#intersectionObserver = new IntersectionObserver(this.intersectionObserverCallback.bind(this), { threshold: 1 });
+
+    anchorsArray.forEach(({ id, element }, index, array) => {
+      this.anchors.set(id, { id, element, prevElement: array[index - 1] });
+    });
+
+    this.#shadowRoot = this.attachShadow({ mode: 'closed' });
+    this.#shadowRoot.append(style, header, ul);
+    this.#intersectionObserver = new IntersectionObserver(this.intersectionObserverCallback.bind(this), {
+      rootMargin: `-${this.#rootMargin}px`,
+      threshold: 1
+    });
   }
 
   connectedCallback() {
-    this.targetsNodeList.forEach(element => this.#intersectionObserver.observe(element));
+    this.targets.forEach(element => this.#intersectionObserver.observe(element));
   }
 
   disconnectedCallback() {
-    this.targetsNodeList.forEach(element => this.#intersectionObserver.unobserve(element));
+    this.targets.forEach(element => this.#intersectionObserver.unobserve(element));
   }
 
   intersectionObserverCallback(entries) {
-    entries.forEach(({ intersectionRatio, target }) => this.anchorsMap.get(target.id).className = intersectionRatio === 1 ? 'active' : '');
-  }
+    if (this.active) {
+      for (const entry of entries) {
+        this.active.element.className = '';
 
+        if (entry.boundingClientRect.top <= entry.rootBounds.top) {
+          this.active = this.anchors.get(entry.target.id);
+        } else if (this.active.id === entry.target.id && this.active.prevElement) {
+          this.active = this.anchors.get(this.active.prevElement.id);
+        }
+      }
+    } else {
+      this.active = this.anchors.get(entries[0].target.id);
+
+      for (const entry of entries.reverse()) {
+        if (entry.boundingClientRect.top <= entry.rootBounds.top + this.#rootMargin) {
+          this.active = this.anchors.get(entry.target.id);
+          break;
+        }
+      }
+    }
+
+    this.active.element.className = 'active';
+  }
 }
 
 customElements.define('wc-scrollspy', Scrollspy);
